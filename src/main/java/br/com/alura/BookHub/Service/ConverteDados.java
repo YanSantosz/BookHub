@@ -1,14 +1,18 @@
 package br.com.alura.BookHub.Service;
 
-
 import tools.jackson.databind.ObjectMapper;
 
 public class ConverteDados implements IConverteDados{
+
     private ObjectMapper mapper = new ObjectMapper();
 
 
     @Override
     public <T> T obterDados(String json, Class<T> classe) {
-        return mapper.readValue(json, classe);
+        try {
+            return mapper.readValue(json, classe);
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao converter dados: " + e.getMessage());
+        }
     }
 }

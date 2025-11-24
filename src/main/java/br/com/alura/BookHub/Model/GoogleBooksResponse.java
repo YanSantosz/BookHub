@@ -7,5 +7,5 @@ import java.util.List;
 public record GoogleBooksResponse(
         String kind,
         Integer totalItems,
-        List<ItemLivro> items)
-{}
+        List<ItemLivro> items
+) {}

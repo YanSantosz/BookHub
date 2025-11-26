@@ -11,6 +11,6 @@ public record DadosLivros(
         @JsonAlias("title") String titulo,
         @JsonAlias("subtitle") String subtitulo,
         @JsonAlias("authors") List<String> autores,
-        @JsonAlias("categories") List<String> categorias,
-        @JsonAlias("pageCount") Integer TotalPaginas
+        @JsonAlias("categories") List<String> categoria,
+        @JsonAlias("pageCount") Integer totalPaginas
 ) {}

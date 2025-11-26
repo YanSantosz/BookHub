@@ -3,94 +3,125 @@ package br.com.alura.BookHub.View;
 import br.com.alura.BookHub.Model.DadosLivros;
 import br.com.alura.BookHub.Model.GoogleBooksResponse;
 import br.com.alura.BookHub.Model.ItemLivro;
+import br.com.alura.BookHub.Model.Livro;
+import br.com.alura.BookHub.Repository.LivroRepository;
 import br.com.alura.BookHub.Service.ConsumoApi;
 import br.com.alura.BookHub.Service.ConverteDados;
 
+import java.util.List;
 import java.util.Scanner;
+import java.util.Optional;
 
 public class Principal {
 
-    private Scanner scanner = new Scanner(System.in);
-    private ConsumoApi consumo = new ConsumoApi();
-    private ConverteDados conversor = new ConverteDados();
-
+    private final Scanner scanner = new Scanner(System.in);
+    private final ConsumoApi consumo = new ConsumoApi();
+    private final ConverteDados conversor = new ConverteDados();
     private final String ENDERECO = "https://www.googleapis.com/books/v1/volumes?q=";
     private final String API_KEY = "&key=AIzaSyA7QdIwUKz-ihWklwhVr3n1KX7ZgBrgs-w";
 
+    private LivroRepository repositorio;
+
+    public Principal(LivroRepository repositorio) {
+        this.repositorio = repositorio;
+    }
+
     public void exibirmenu() {
-        int opcao = -1;
-
+        var opcao = -1;
         while (opcao != 0) {
-            System.out.println("\n╔════════════════════════════════╗");
-            System.out.println("║      BOOKHUB - BIBLIOTECA      ║");
-            System.out.println("╚════════════════════════════════╝");
-            System.out.println("1 - Buscar livro");
-            System.out.println("2 - Listar livros salvos");
-            System.out.println("3 - Buscar livro por título");
-            System.out.println("0 - Sair");
-            System.out.print("\nEscolha uma opção: ");
+            var menu = """
+                    \n--------------------------------
+                    BOOKHUB - BIBLIOTECA
+                    --------------------------------
+                    1 - Pesquisar Novo Livro (e escolher qual salvar)
+                    2 - Ver meus livros salvos
+                    
+                    0 - Sair
+                    --------------------------------
+                    Escolha uma opção: 
+                    """;
 
-            opcao = scanner.nextInt();
-            scanner.nextLine();
+            System.out.println(menu);
 
-            switch (opcao) {
-                case 1:
-                    buscarLivro();
-                    break;
-                case 2:
-                    verMeusLivros();
-                    break;
-                case 3:
-                    adcionarLivros();
-                    break;
-                case 0:
-                    System.out.println("\n Saindo... Até logo!");
-                    break;
-                default:
-                    System.out.println("\n Opção inválida!");
+            try {
+                opcao = scanner.nextInt();
+                scanner.nextLine();
+
+                switch (opcao) {
+                    case 1 -> buscarLivros();
+                    case 2 -> listarLivrosDoBanco();
+                    case 0 -> System.out.println("Saindo...");
+                    default -> System.out.println("Opção inválida");
+                }
+            } catch (Exception e) {
+                System.out.println("Erro: Digite apenas números.");
+                scanner.nextLine();
             }
         }
     }
 
-    private void buscarLivro() {
-        System.out.print("\nDigite o nome do livro: ");
-        String nomeLivro = scanner.nextLine();
+    private void buscarLivros() {
+        System.out.println("\nDigite o nome do livro para busca:");
+        var nomeLivro = scanner.nextLine();
 
         var json = consumo.obterDados(ENDERECO + nomeLivro.replace(" ", "+") + API_KEY);
-
         GoogleBooksResponse response = conversor.obterDados(json, GoogleBooksResponse.class);
 
         if (response.items() == null || response.items().isEmpty()) {
-            System.out.println("\nNenhum livro encontrado!");
+            System.out.println("\nNenhum livro encontrado com esse nome.");
             return;
         }
 
-        int contador = 1;
-        for (ItemLivro item : response.items()) {
-            DadosLivros livro = item.volumeInfo();
+        List<ItemLivro> livrosEncontrados = response.items();
 
-            System.out.println("─────────────────────────────────────────");
-            System.out.println("LIVRO " + contador);
-            System.out.println("─────────────────────────────────────────");
-            System.out.println("Título: " + livro.titulo());
-            System.out.println("Subtítulo: " + livro.subtitulo());
-            System.out.println("Autores: " + livro.autores());
-            System.out.println("Categoria: " + livro.categorias());
-            System.out.println("Páginas: " + livro.TotalPaginas());
-            System.out.println();
+        System.out.println("\n--- RESULTADOS ENCONTRADOS ---");
+        for (int i = 0; i < livrosEncontrados.size(); i++) {
+            DadosLivros dados = livrosEncontrados.get(i).volumeInfo();
+            String autor = (dados.autores() != null && !dados.autores().isEmpty())
+                    ? dados.autores().get(0)
+                    : "Desconhecido";
 
-            contador++;
+            System.out.println("\n----- LIVRO " + (i + 1) + " -----");
+            System.out.println("Título: " + dados.titulo());
+            System.out.println("Autores: " + dados.autores());
+            System.out.println("Categorias: " + dados.categoria());
+            System.out.println("Páginas: " + dados.totalPaginas());
+            System.out.println("-------------------");
+        }
+
+        System.out.println("\nDigite o NÚMERO do livro que deseja salvar (ou 0 para cancelar):");
+        int escolha = scanner.nextInt();
+        scanner.nextLine();
+
+        if (escolha > 0 && escolha <= livrosEncontrados.size()) {
+            ItemLivro livroEscolhido = livrosEncontrados.get(escolha - 1);
+            salvarLivro(livroEscolhido);
+        } else if (escolha == 0) {
+            System.out.println("Operação cancelada.");
+        } else {
+            System.out.println("Número inválido!");
         }
     }
 
+    private void salvarLivro(ItemLivro itemLivro) {
+        Optional<Livro> livroExistente = repositorio.findByGoogleBooksId(itemLivro.id());
 
-    private void verMeusLivros() {
-        System.out.println("\nVer meus livros salvos");
+        if (livroExistente.isPresent()) {
+            System.out.println("\nERRO: O livro '" + livroExistente.get().getTitulo() + "' já está salvo na sua lista!");
+        } else {
+            Livro livro = new Livro(itemLivro.id(), itemLivro.volumeInfo());
+            repositorio.save(livro);
+            System.out.println("\nSUCESSO! Livro salvo: " + livro.getTitulo());
+        }
     }
 
-    private void adcionarLivros() {
-        System.out.println("\nAdicionar livro a biblioteca");
-        System.out.print("Digite o nome do livro para buscar:");
-        String nomeLivro = scanner.nextLine();
+    private void listarLivrosDoBanco() {
+        List<Livro> livros = repositorio.findAll();
+        if (livros.isEmpty()) {
+            System.out.println("\nSua lista está vazia.");
+        } else {
+            System.out.println("\n--- MEUS LIVROS SALVOS ---");
+            livros.forEach(System.out::println);
+        }
     }
 }

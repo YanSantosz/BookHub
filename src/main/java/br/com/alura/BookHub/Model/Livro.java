@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "livros")
+@Table(name = "alura_livros")
 public class Livro {
 
     @Id
@@ -25,8 +25,6 @@ public class Livro {
     private List<String> categorias = new ArrayList<>();
 
     private Integer totalPaginas;
-
-    public Livro() {}
 
     public Livro(String googleBooksId, DadosLivros dados) {
         this.googleBooksId = googleBooksId;

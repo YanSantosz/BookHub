@@ -7,18 +7,25 @@ import br.com.alura.BookHub.Model.Livro;
 import br.com.alura.BookHub.Repository.LivroRepository;
 import br.com.alura.BookHub.Service.ConsumoApi;
 import br.com.alura.BookHub.Service.ConverteDados;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Scanner;
 import java.util.Optional;
 
+@Component
 public class Principal {
 
     private final Scanner scanner = new Scanner(System.in);
     private final ConsumoApi consumo = new ConsumoApi();
     private final ConverteDados conversor = new ConverteDados();
-    private final String ENDERECO = "https://www.googleapis.com/books/v1/volumes?q=";
-    private final String API_KEY = "&key=AIzaSyA7QdIwUKz-ihWklwhVr3n1KX7ZgBrgs-w";
+
+    @Value("${google.books.base.url}")
+    private String ENDERECO;
+
+    @Value("${google.books.api.key}")
+    private String API_KEY;
 
     private LivroRepository repositorio;
 
@@ -33,7 +40,7 @@ public class Principal {
                     \n--------------------------------
                     BOOKHUB - BIBLIOTECA
                     --------------------------------
-                    1 - Pesquisar Novo Livro (e escolher qual salvar)
+                    1 - Pesquisar Livro
                     2 - Ver meus livros salvos
                     
                     0 - Sair
@@ -64,7 +71,7 @@ public class Principal {
         System.out.println("\nDigite o nome do livro para busca:");
         var nomeLivro = scanner.nextLine();
 
-        var json = consumo.obterDados(ENDERECO + nomeLivro.replace(" ", "+") + API_KEY);
+        var json = consumo.obterDados(ENDERECO + nomeLivro.replace(" ", "+") + "&key+" + API_KEY);
         GoogleBooksResponse response = conversor.obterDados(json, GoogleBooksResponse.class);
 
         if (response.items() == null || response.items().isEmpty()) {
@@ -86,6 +93,7 @@ public class Principal {
             System.out.println("Autores: " + dados.autores());
             System.out.println("Categorias: " + dados.categoria());
             System.out.println("Páginas: " + dados.totalPaginas());
+            System.out.println("Descrição " + dados.descricao());
             System.out.println("-------------------");
         }
 

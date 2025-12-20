@@ -40,8 +40,9 @@ public class Principal {
                     \n--------------------------------
                     BOOKHUB - BIBLIOTECA
                     --------------------------------
-                    1 - Pesquisar Livro
-                    2 - Ver meus livros salvos
+                    1 - Pesquisar livro
+                    2 - Pesquisar livro por autor
+                    3 - Ver meus livros salvos
                     
                     0 - Sair
                     --------------------------------
@@ -56,7 +57,8 @@ public class Principal {
 
                 switch (opcao) {
                     case 1 -> buscarLivros();
-                    case 2 -> listarLivrosDoBanco();
+                    case 2 -> pesquisarLivroAutor();
+                    case 3 -> listarLivrosDoBanco();
                     case 0 -> System.out.println("Saindo...");
                     default -> System.out.println("Opção inválida");
                 }
@@ -131,5 +133,20 @@ public class Principal {
             System.out.println("\n--- MEUS LIVROS SALVOS ---");
             livros.forEach(System.out::println);
         }
+    }
+
+    private void pesquisarLivroAutor(){
+        System.out.print("Digite o nome do autor: ");
+        var nomeAutor = scanner.nextLine();
+
+        var json = consumo.obterDados(ENDERECO + "inauthor:" + nomeAutor.replace(" ", "+") + "&key=" + API_KEY);
+        GoogleBooksResponse response = conversor.obterDados(json, GoogleBooksResponse.class);
+
+        if (response.items() == null || response.items().isEmpty()) {
+            System.out.println("\nNenhum livro encontrado desse autor.");
+            return;
+        }
+        List<Livro> livrosEncontrados = repositorio.findByAutoresContainingIgnoreCase(nomeAutor);
+        System.out.println(livrosEncontrados);
     }
 }

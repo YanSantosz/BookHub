@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/24386697/README.md)
 # 📚 BookHub - Gerenciador de Biblioteca Digital
 
 > Uma aplicação Spring Boot que integra a **Google Books API** para buscar, gerenciar e persistir livros em um banco de dados PostgreSQL.

@@ -7,7 +7,6 @@ import br.com.alura.BookHub.Model.Livro;
 import br.com.alura.BookHub.Repository.LivroRepository;
 import br.com.alura.BookHub.Service.ConsumoApi;
 import br.com.alura.BookHub.Service.ConverteDados;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -21,19 +20,19 @@ public class Principal {
     private final ConsumoApi consumo = new ConsumoApi();
     private final ConverteDados conversor = new ConverteDados();
 
-    @Value("${google.books.base.url}")
-    private String ENDERECO;
+    private final String ENDERECO = System.getenv("GBOOK_BASEURL") != null
+            ? System.getenv("GBOOK_BASEURL")
+            : "https://www.googleapis.com/books/v1/volumes?q=";
 
-    @Value("${google.books.api.key}")
-    private String API_KEY;
+    private final String API_KEY = System.getenv("GBOOK_APIKEY");
 
-    private LivroRepository repositorio;
+    private final LivroRepository repositorio;
 
     public Principal(LivroRepository repositorio) {
         this.repositorio = repositorio;
     }
 
-    public void exibirmenu() {
+    public void exibirMenu() {
         var opcao = -1;
         while (opcao != 0) {
             var menu = """
@@ -42,18 +41,18 @@ public class Principal {
                     --------------------------------
                     1 - Pesquisar livro
                     2 - Pesquisar livro por autor
-                    3 - Ver meus livros salvos
+                    3 - Listar livros salvos
                     
                     0 - Sair
                     --------------------------------
-                    Escolha uma opção: 
+                    Escolha uma opção:
                     """;
 
             System.out.println(menu);
 
             try {
-                opcao = scanner.nextInt();
-                scanner.nextLine();
+                String entrada = scanner.nextLine();
+                opcao = Integer.parseInt(entrada.trim());
 
                 switch (opcao) {
                     case 1 -> buscarLivros();
@@ -62,54 +61,97 @@ public class Principal {
                     case 0 -> System.out.println("Saindo...");
                     default -> System.out.println("Opção inválida");
                 }
-            } catch (Exception e) {
+            } catch (NumberFormatException e) {
                 System.out.println("Erro: Digite apenas números.");
                 scanner.nextLine();
+                opcao = -1;
             }
         }
+        scanner.close();
     }
 
     private void buscarLivros() {
         System.out.println("\nDigite o nome do livro para busca:");
-        var nomeLivro = scanner.nextLine();
+        var nomeLivro = scanner.nextLine().trim();
 
-        var json = consumo.obterDados(ENDERECO + nomeLivro.replace(" ", "+") + "&key+" + API_KEY);
-        GoogleBooksResponse response = conversor.obterDados(json, GoogleBooksResponse.class);
+        List<ItemLivro> livros = buscarNaApi(nomeLivro.replace(" ", "+"));
 
-        if (response.items() == null || response.items().isEmpty()) {
+        if (livros == null) {
             System.out.println("\nNenhum livro encontrado com esse nome.");
             return;
         }
 
-        List<ItemLivro> livrosEncontrados = response.items();
+        exibirEsalvarLivros(livros);
+    }
 
+
+    private void pesquisarLivroAutor() {
+        System.out.print("Digite o nome do autor: ");
+        var nomeAutor = scanner.nextLine().trim();
+
+        List<ItemLivro> livros = buscarNaApi("inauthor:" + nomeAutor.replace(" ", "+"));
+
+        if (livros == null) {
+            System.out.println("\nNenhum livro encontrado desse autor.");
+            return;
+        }
+
+        exibirEsalvarLivros(livros);
+    }
+
+
+    private List<ItemLivro> buscarNaApi(String parametro) {
+        String url = ENDERECO + parametro + "&key=" + API_KEY;
+
+        var json = consumo.obterDados(url);
+        GoogleBooksResponse response = conversor.obterDados(json, GoogleBooksResponse.class);
+
+        if (response.items() == null || response.items().isEmpty()) {
+            return null;
+        }
+
+        return response.items();
+    }
+
+
+    private void exibirEsalvarLivros(List<ItemLivro> livrosEncontrados) {
         System.out.println("\n--- RESULTADOS ENCONTRADOS ---");
+
         for (int i = 0; i < livrosEncontrados.size(); i++) {
             DadosLivros dados = livrosEncontrados.get(i).volumeInfo();
+
             String autor = (dados.autores() != null && !dados.autores().isEmpty())
-                    ? dados.autores().get(0)
-                    : "Desconhecido";
+                    ?  String.join(", ", dados.autores())
+                    : "Autor não informado";
+
+            String categorias = (dados.categoria() != null && !dados.categoria().isEmpty())
+                    ? String.join(", ", dados.categoria())
+                    : "Categoria não informada";
 
             System.out.println("\n----- LIVRO " + (i + 1) + " -----");
             System.out.println("Título: " + dados.titulo());
-            System.out.println("Autores: " + dados.autores());
-            System.out.println("Categorias: " + dados.categoria());
+            System.out.println("Autores: " + autor);
+            System.out.println("Categorias: " + categorias);
             System.out.println("Páginas: " + dados.totalPaginas());
-            System.out.println("Descrição " + dados.descricao());
             System.out.println("-------------------");
         }
 
-        System.out.println("\nDigite o NÚMERO do livro que deseja salvar (ou 0 para cancelar):");
-        int escolha = scanner.nextInt();
-        scanner.nextLine();
+        System.out.println("\nDigite o NÚMERO do livro que deseja salvar:");
+        try {
+            String entrada = scanner.nextLine();
+            int escolha = Integer.parseInt(entrada.trim());
 
-        if (escolha > 0 && escolha <= livrosEncontrados.size()) {
-            ItemLivro livroEscolhido = livrosEncontrados.get(escolha - 1);
-            salvarLivro(livroEscolhido);
-        } else if (escolha == 0) {
-            System.out.println("Operação cancelada.");
-        } else {
-            System.out.println("Número inválido!");
+            if (escolha > 0 && escolha <= livrosEncontrados.size()) {
+                ItemLivro livroEscolhido = livrosEncontrados.get(escolha - 1);
+                salvarLivro(livroEscolhido);
+            } else if (escolha == 0) {
+                System.out.println("Operação cancelada.");
+            } else {
+                System.out.println("Número inválido!");
+            }
+        } catch (Exception e) {
+            System.out.println("Erro: Digite apenas números!");
+            scanner.nextLine();
         }
     }
 
@@ -125,6 +167,7 @@ public class Principal {
         }
     }
 
+
     private void listarLivrosDoBanco() {
         List<Livro> livros = repositorio.findAll();
         if (livros.isEmpty()) {
@@ -133,20 +176,5 @@ public class Principal {
             System.out.println("\n--- MEUS LIVROS SALVOS ---");
             livros.forEach(System.out::println);
         }
-    }
-
-    private void pesquisarLivroAutor(){
-        System.out.print("Digite o nome do autor: ");
-        var nomeAutor = scanner.nextLine();
-
-        var json = consumo.obterDados(ENDERECO + "inauthor:" + nomeAutor.replace(" ", "+") + "&key=" + API_KEY);
-        GoogleBooksResponse response = conversor.obterDados(json, GoogleBooksResponse.class);
-
-        if (response.items() == null || response.items().isEmpty()) {
-            System.out.println("\nNenhum livro encontrado desse autor.");
-            return;
-        }
-        List<Livro> livrosEncontrados = repositorio.findByAutoresContainingIgnoreCase(nomeAutor);
-        System.out.println(livrosEncontrados);
     }
 }

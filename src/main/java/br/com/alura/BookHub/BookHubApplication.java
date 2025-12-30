@@ -20,6 +20,6 @@ public class BookHubApplication implements CommandLineRunner {
     @Override
     public void run(String... args){
         Principal principal = new Principal(repositorio);
-        principal.exibirmenu();
+        principal.exibirMenu();
     }
 }

@@ -18,8 +18,12 @@ public class ConsumoApi {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             return response.body();
 
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException("Erro ao fazer requisição: " + e.getMessage());
+        } catch (IOException e) {
+            throw new RuntimeException("Erro de conexão com API: " + e.getMessage(), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Requisição interrompida: " + e.getMessage(), e);
         }
+
     }
 }

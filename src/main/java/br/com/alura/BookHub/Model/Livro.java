@@ -35,11 +35,11 @@ public class Livro {
         this.titulo = dados.titulo();
         this.subtitulo = dados.subtitulo();
         this.autores = (dados.autores() != null && !dados.autores().isEmpty())
-            ? dados.autores()
-            : List.of("Autor não informado");
+                ? new ArrayList<>(dados.autores())
+                : new ArrayList<>(List.of("Autor não informado"));
         this.categorias = (dados.categoria() != null && !dados.categoria().isEmpty())
-                ? dados.categoria()
-                : List.of("Categoria não informada");
+                ? new ArrayList<>(dados.categoria())
+                : new ArrayList<>(List.of("Categoria não informada"));
         this.totalPaginas = dados.totalPaginas();
     }
 

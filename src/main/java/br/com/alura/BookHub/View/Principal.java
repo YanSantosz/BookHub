@@ -63,11 +63,9 @@ public class Principal {
                 }
             } catch (NumberFormatException e) {
                 System.out.println("Erro: Digite apenas números.");
-                scanner.nextLine();
                 opcao = -1;
             }
         }
-        scanner.close();
     }
 
     private void buscarLivros() {
@@ -120,19 +118,21 @@ public class Principal {
         for (int i = 0; i < livrosEncontrados.size(); i++) {
             DadosLivros dados = livrosEncontrados.get(i).volumeInfo();
 
+            String titulo = dados.titulo() != null ? dados.titulo() : "Título não informado";
             String autor = (dados.autores() != null && !dados.autores().isEmpty())
-                    ?  String.join(", ", dados.autores())
+                    ? String.join(", ", dados.autores())
                     : "Autor não informado";
 
             String categorias = (dados.categoria() != null && !dados.categoria().isEmpty())
                     ? String.join(", ", dados.categoria())
                     : "Categoria não informada";
+            String paginas = dados.totalPaginas() != null ? dados.totalPaginas().toString() : "Não informado";
 
             System.out.println("\n----- LIVRO " + (i + 1) + " -----");
-            System.out.println("Título: " + dados.titulo());
+            System.out.println("Título: " + titulo);
             System.out.println("Autores: " + autor);
             System.out.println("Categorias: " + categorias);
-            System.out.println("Páginas: " + dados.totalPaginas());
+            System.out.println("Páginas: " + paginas);
             System.out.println("-------------------");
         }
 
@@ -151,7 +151,6 @@ public class Principal {
             }
         } catch (Exception e) {
             System.out.println("Erro: Digite apenas números!");
-            scanner.nextLine();
         }
     }
 
